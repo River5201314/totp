@@ -2,20 +2,115 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TOTP验证码</title>
     <link rel="icon" type="image/svg+xml" sizes="24x24" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%232c3e50' stroke-width='2'/%3E%3Cpolyline points='12 6 12 12 16 14' stroke='%232c3e50' stroke-width='2' fill='none'/%3E%3C/svg%3E">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f5f5; }
-        .otp-card { text-align: center; padding: 35px; background: white; border-radius: 12px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); }
-        .otp-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px; }
-        .otp-header h2 { color: #2c3e50; font-size: 20px; }
+        body { 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            background: #f0f2f5;
+            background-image: 
+                radial-gradient(rgba(44, 62, 80, 0.05) 1px, transparent 1px),
+                radial-gradient(rgba(44, 62, 80, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-position: 0 0, 25px 25px;
+            padding: 20px; /* 防止小屏幕内容贴边 */
+        }
+        .otp-card { 
+            text-align: center; 
+            padding: 30px 20px; /* 垂直内边距略大，水平内边距适配手机 */
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 12px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 380px; /* 限制最大宽度，在桌面端更美观 */
+        }
+        .otp-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .otp-header h2 { color: #2c3e50; font-size: 18px; }
         .otp-issuer { font-size: 13px; color: #7f8c8d; margin-bottom: 5px; }
-        #otp-code { font-size: 40px; font-weight: bold; letter-spacing: 5px; color: #2c3e50; padding: 18px 25px; background: #f8f9fa; border-radius: 8px; margin: 15px 0; min-width: 300px; user-select: text; }
-        #error-msg { font-size: 14px; color: #e74c3c; margin: 10px 0; min-height: 18px; }
-        #countdown { font-size: 14px; color: #e67e22; margin: 10px 0; font-weight: 500; }
-        .update-log { font-size: 11px; color: #95a5a6; margin-top: 10px; }
+        .code-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        #otp-code { 
+            font-size: clamp(2.5rem, 8vw, 40px); /* 响应式字体大小，小屏幕自动缩小 */
+            font-weight: bold; 
+            letter-spacing: 5px; 
+            color: #2c3e50; 
+            padding: 15px 20px; 
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 8px; 
+            width: 100%; /* 占满容器宽度 */
+            max-width: 300px;
+            user-select: text; 
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+        #copy-btn {
+            background: rgba(255, 255, 255, 0.4);
+            border: none;
+            color: #666;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 8px;
+            transition: all 0.2s;
+        }
+        #copy-btn:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: #333;
+        }
+        #copy-btn:active {
+            transform: scale(0.95);
+        }
+        #copy-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+        #error-msg { 
+            font-size: 14px; 
+            color: #e74c3c; 
+            margin: 10px 0; 
+            min-height: 18px;
+            padding: 0 10px;
+        }
+        #countdown { 
+            font-size: 14px; 
+            color: #e67e22; 
+            margin: 10px 0; 
+            font-weight: 500;
+        }
+        .update-log { 
+            font-size: 11px; 
+            color: #95a5a6; 
+            margin-top: 10px;
+        }
+
+        /* 针对小屏幕的优化 */
+        @media (max-width: 375px) {
+            .otp-card {
+                padding: 25px 15px;
+            }
+            #otp-code {
+                letter-spacing: 3px; /* 小屏幕减少字符间距，避免换行 */
+                padding: 12px 15px;
+            }
+            .otp-header {
+                margin-bottom: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -28,13 +123,20 @@
             <h2>TOTP验证码</h2>
         </div>
         <div class="otp-issuer">OpenList · 账户：admin</div>
-        <div id="otp-code">----</div>
+        <div class="code-container">
+            <div id="otp-code">----</div>
+            <button id="copy-btn" title="复制验证码">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                </svg>
+            </button>
+        </div>
         <div id="error-msg"></div>
         <div id="countdown">验证码将在 30 秒后刷新</div>
         <div id="update-log" class="update-log">上次更新：加载中...</div>
     </div>
 
-    <!-- 1. 本地TOTP库（确保生成逻辑稳定） -->
+    <!-- 1. 本地TOTP库 -->
     <script>
         window.totp = (function() {
             "use strict";
@@ -80,11 +182,11 @@
         })();
     </script>
 
-    <!-- 2. 实时更新核心逻辑（修复定时器问题） -->
+    <!-- 2. 核心逻辑 -->
     <script>
         const OTP_CONFIG = {
             secret: "K4LPPOLTQADTPJ4MSAAPYBICP7HMDD3O",
-            period: 30, // 30秒更新一次验证码
+            period: 30,
             digits: 6
         };
 
@@ -93,26 +195,110 @@
         const errorEl = document.getElementById("error-msg");
         const countdownEl = document.getElementById("countdown");
         const logEl = document.getElementById("update-log");
+        const copyBtn = document.getElementById("copy-btn");
 
-        // 记录上次更新时间（用于日志）
+        // 检查剪贴板权限
+        async function checkClipboardPermission() {
+            try {
+                if (!navigator.permissions || !navigator.clipboard) {
+                    return false;
+                }
+                const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
+                return permissionStatus.state === 'granted' || permissionStatus.state === 'prompt';
+            } catch (err) {
+                console.error('检查剪贴板权限失败:', err);
+                return false;
+            }
+        }
+
+        // 选择文本函数
+        function selectText(element) {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return selection;
+        }
+
+        // 复制功能
+        copyBtn.addEventListener('click', async () => {
+            try {
+                const code = otpEl.textContent.trim();
+                if (!code || code === '----' || code === 'ERROR') {
+                    return;
+                }
+
+                // 先选中验证码文本，方便用户手动复制
+                const selection = selectText(otpEl);
+
+                // 检查权限
+                const hasPermission = await checkClipboardPermission();
+                
+                // 方法1: 使用Clipboard API（现代浏览器）
+                if (hasPermission && navigator.clipboard) {
+                    try {
+                        await navigator.clipboard.writeText(code);
+                        return;
+                    } catch (clipboardErr) {
+                        console.warn('Clipboard API 失败，尝试备选方法:', clipboardErr);
+                    }
+                }
+
+                // 方法2: 使用document.execCommand（兼容性更好）
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        return;
+                    }
+                } catch (execErr) {
+                    console.warn('execCommand 失败，尝试最后方法:', execErr);
+                }
+
+                // 方法3: 最原始的方法 - 创建隐藏文本框
+                try {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = code;
+                    textarea.style.position = 'absolute';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    
+                    if (successful) {
+                        return;
+                    }
+                } catch (textAreaErr) {
+                    console.error('文本框复制方法失败:', textAreaErr);
+                }
+
+            } catch (err) {
+                console.error('复制过程出错:', err);
+            } finally {
+                // 清除选中状态
+                window.getSelection().removeAllRanges();
+            }
+        });
+
+        // 记录上次更新时间
         function updateLog(type = "验证码") {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString(); // 显示本地时间，用户更易理解
+            const timeStr = now.toLocaleTimeString();
             logEl.textContent = `上次${type}更新：${timeStr}`;
         }
 
-        // 1. 倒计时实时更新（秒级跳动，确保用户能看到“动”）
+        // 倒计时更新
         function updateCountdown() {
             const utcSeconds = Math.floor(Date.now() / 1000);
             const remaining = OTP_CONFIG.period - (utcSeconds % OTP_CONFIG.period);
             countdownEl.textContent = `验证码将在 ${remaining} 秒后刷新`;
-            // 剩余0秒时主动触发验证码更新（避免周期偏差）
             if (remaining === 0) {
                 updateOTP();
             }
         }
 
-        // 2. 验证码更新（确保30秒精准更新）
+        // 验证码更新
         async function updateOTP() {
             try {
                 const totpCode = await window.totp.generate(OTP_CONFIG.secret, {
@@ -121,7 +307,7 @@
                 });
                 otpEl.textContent = totpCode;
                 errorEl.textContent = "";
-                updateLog("验证码"); // 更新日志
+                updateLog("验证码");
                 console.log(`[${new Date().toLocaleTimeString()}] TOTP更新：${totpCode}`);
             } catch (e) {
                 otpEl.textContent = "ERROR";
@@ -131,24 +317,21 @@
             }
         }
 
-        // 3. 初始化：用一个主定时器管理所有更新（避免多个定时器冲突）
+        // 初始化
         function init() {
-            // 首次加载立即执行
             updateCountdown();
             updateOTP();
 
-            // 主定时器：每秒执行一次（同时处理倒计时和更新检查）
             setInterval(() => {
                 updateCountdown();
-                // 每30秒的整数倍时更新验证码（双重保障）
                 const utcSeconds = Math.floor(Date.now() / 1000);
                 if (utcSeconds % OTP_CONFIG.period === 0) {
                     updateOTP();
                 }
-            }, 1000); // 1秒=1000毫秒，确保倒计时秒级跳动
+            }, 1000);
         }
 
-        // 启动：确保库加载完成
+        // 启动
         if (window.totp?.generate) {
             init();
         } else {
@@ -159,3 +342,4 @@
     </script>
 </body>
 </html>
+    
