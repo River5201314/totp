@@ -1,122 +1,246 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TOTP验证码</title>
-    <link rel="icon" type="image/svg+xml" sizes="24x24" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%232c3e50' stroke-width='2'/%3E%3Cpolyline points='12 6 12 12 16 14' stroke='%232c3e50' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" sizes="24x24" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%23ffffff' stroke-width='2'/%3E%3Cpolyline points='12 6 12 12 16 14' stroke='%23ffffff' stroke-width='2' fill='none'/%3E%3C/svg%3E">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
         body { 
             min-height: 100vh; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
-            background: #f0f2f5;
-            background-image: 
-                radial-gradient(rgba(44, 62, 80, 0.05) 1px, transparent 1px),
-                radial-gradient(rgba(44, 62, 80, 0.05) 1px, transparent 1px);
-            background-size: 50px 50px;
-            background-position: 0 0, 25px 25px;
-            padding: 20px; /* 防止小屏幕内容贴边 */
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+            color: white;
         }
+        
+        /* 流光变换背景容器 */
+        .flowing-light-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .flowing-light-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 透明玻璃质感框架 */
         .otp-card { 
             text-align: center; 
-            padding: 30px 20px; /* 垂直内边距略大，水平内边距适配手机 */
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 12px; 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            padding: 36px 24px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 20px; 
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.15),
+                0 1px 2px rgba(0, 0, 0, 0.1),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2);
             width: 100%;
-            max-width: 380px; /* 限制最大宽度，在桌面端更美观 */
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
         }
-        .otp-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .otp-header h2 { color: #2c3e50; font-size: 18px; }
-        .otp-issuer { font-size: 13px; color: #7f8c8d; margin-bottom: 5px; }
+        
+        .otp-header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px; 
+            margin-bottom: 24px; 
+        }
+        
+        .otp-header h2 { 
+            color: #ffffff; 
+            font-size: 20px; 
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        .otp-issuer { 
+            font-size: 14px; 
+            color: rgba(255, 255, 255, 0.8); 
+            margin-bottom: 8px;
+            letter-spacing: 0.1px;
+        }
+        
         .code-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin: 15px 0;
+            gap: 16px;
+            margin: 20px 0;
         }
+        
         #otp-code { 
-            font-size: clamp(2.5rem, 8vw, 40px); /* 响应式字体大小，小屏幕自动缩小 */
-            font-weight: bold; 
-            letter-spacing: 5px; 
-            color: #2c3e50; 
-            padding: 15px 20px; 
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-radius: 8px; 
-            width: 100%; /* 占满容器宽度 */
+            font-size: clamp(2.5rem, 8vw, 42px);
+            font-weight: 700; /* 字体加粗 */
+            letter-spacing: 6px; 
+            color: #ffffff; 
+            padding: 18px 24px; 
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 14px; 
+            width: 100%;
             max-width: 300px;
             user-select: text; 
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            box-shadow: 
+                0 2px 10px rgba(0, 0, 0, 0.1),
+                inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
         }
+        
+        /* 数字容器 - 用于实现跳动效果 */
+        .digit-container {
+            display: inline-block;
+            width: 30px;
+            height: 60px;
+            position: relative;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        
+        /* 单个数字样式 */
+        .digit {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        /* 验证码区域的流光效果 */
+        #otp-code::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.2) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            animation: shine 6s infinite;
+        }
+        
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) rotate(30deg);
+            }
+            100% {
+                transform: translateX(100%) rotate(30deg);
+            }
+        }
+        
         #copy-btn {
-            background: rgba(255, 255, 255, 0.4);
-            border: none;
-            color: #666;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-radius: 12px;
             cursor: pointer;
-            padding: 8px;
-            transition: all 0.2s;
+            padding: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 
+                0 1px 3px rgba(0, 0, 0, 0.1),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
         }
+        
         #copy-btn:hover {
-            background: rgba(255, 255, 255, 0.6);
-            color: #333;
+            background: rgba(255, 255, 255, 0.18);
+            box-shadow: 
+                0 2px 5px rgba(0, 0, 0, 0.15),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2);
         }
+        
         #copy-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                0 1px 2px rgba(0, 0, 0, 0.1),
+                inset 0 1px 1px rgba(0, 0, 0, 0.1);
         }
+        
         #copy-btn svg {
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
         }
-        #error-msg { 
-            font-size: 14px; 
-            color: #e74c3c; 
-            margin: 10px 0; 
-            min-height: 18px;
-            padding: 0 10px;
-        }
+        
         #countdown { 
-            font-size: 14px; 
-            color: #e67e22; 
-            margin: 10px 0; 
+            font-size: 15px; 
+            color: rgba(255, 255, 255, 0.9); 
+            margin: 12px 0; 
             font-weight: 500;
+            letter-spacing: 0.1px;
         }
+        
         .update-log { 
-            font-size: 11px; 
-            color: #95a5a6; 
-            margin-top: 10px;
+            font-size: 12px; 
+            color: rgba(255, 255, 255, 0.7); 
+            margin-top: 12px;
+            letter-spacing: 0.05px;
         }
 
-        /* 针对小屏幕的优化 */
+        /* 响应式优化 */
         @media (max-width: 375px) {
             .otp-card {
-                padding: 25px 15px;
+                padding: 30px 20px;
+                border-radius: 18px;
             }
+            
             #otp-code {
-                letter-spacing: 3px; /* 小屏幕减少字符间距，避免换行 */
-                padding: 12px 15px;
+                letter-spacing: 4px;
+                padding: 15px 20px;
+                font-size: clamp(2.2rem, 8vw, 38px);
             }
+            
+            .digit-container {
+                width: 25px;
+                height: 50px;
+            }
+            
             .otp-header {
-                margin-bottom: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .code-container {
+                gap: 14px;
+                margin: 18px 0;
             }
         }
     </style>
 </head>
 <body>
+    <!-- 流光变换背景 -->
+    <div class="flowing-light-background">
+        <canvas class="flowing-light-canvas" id="flowingLightCanvas"></canvas>
+    </div>
+
+    <!-- 透明玻璃质感框架 -->
     <div class="otp-card">
         <div class="otp-header">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2c3e50" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
@@ -124,19 +248,228 @@
         </div>
         <div class="otp-issuer">OpenList · 账户：admin</div>
         <div class="code-container">
-            <div id="otp-code">----</div>
+            <div id="otp-code">
+                <!-- 数字容器将通过JavaScript动态生成 -->
+            </div>
             <button id="copy-btn" title="复制验证码">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
                 </svg>
             </button>
         </div>
-        <div id="error-msg"></div>
         <div id="countdown">验证码将在 30 秒后刷新</div>
         <div id="update-log" class="update-log">上次更新：加载中...</div>
     </div>
 
-    <!-- 1. 本地TOTP库 -->
+    <!-- 1. 流光变换背景效果 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('flowingLightCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置canvas尺寸
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            // 流光色彩方案 - 多彩渐变
+            const colorPalettes = [
+                // 紫色系
+                { r: 153, g: 51, b: 255 },   // 紫色
+                { r: 103, g: 65, b: 114 },   // 深紫
+                { r: 180, g: 85, b: 247 },   // 亮紫
+                
+                // 蓝色系
+                { r: 51, g: 153, b: 255 },   // 蓝色
+                { r: 65, g: 90, b: 114 },    // 深海蓝
+                { r: 85, g: 190, b: 247 },   // 亮蓝
+                
+                // 粉色系
+                { r: 255, g: 51, b: 153 },   // 粉红
+                { r: 114, g: 65, b: 82 },    // 深粉
+                { r: 247, g: 85, b: 163 }    // 亮粉
+            ];
+            
+            // 流光粒子类
+            class LightParticle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 200 + 50;
+                    this.speedX = Math.random() * 1 - 0.5;
+                    this.speedY = Math.random() * 1 - 0.5;
+                    this.color = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+                    this.alpha = Math.random() * 0.2 + 0.1;
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.angleSpeed = Math.random() * 0.02 - 0.01;
+                }
+                
+                update() {
+                    // 移动粒子
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.angle += this.angleSpeed;
+                    
+                    // 边界检测 - 循环效果
+                    if (this.x < -this.size) this.x = canvas.width + this.size;
+                    if (this.x > canvas.width + this.size) this.x = -this.size;
+                    if (this.y < -this.size) this.y = canvas.height + this.size;
+                    if (this.y > canvas.height + this.size) this.y = -this.size;
+                }
+                
+                draw() {
+                    ctx.beginPath();
+                    
+                    // 创建渐变光效
+                    const gradient = ctx.createRadialGradient(
+                        this.x, this.y, 0,
+                        this.x, this.y, this.size
+                    );
+                    
+                    // 随时间变化的颜色透明度
+                    const pulse = Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.5 + 0.5;
+                    const currentAlpha = this.alpha * pulse;
+                    
+                    gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
+                    gradient.addColorStop(0.6, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha * 0.3})`);
+                    gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // 光带类 - 创造流动光带效果
+            class LightStream {
+                constructor() {
+                    this.points = [];
+                    this.count = Math.floor(Math.random() * 10) + 5;
+                    this.color = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+                    this.width = Math.random() * 30 + 10;
+                    this.speed = Math.random() * 2 + 1;
+                    this.alpha = Math.random() * 0.3 + 0.1;
+                    
+                    // 初始化光带点
+                    for (let i = 0; i < this.count; i++) {
+                        this.points.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            tx: Math.random() * canvas.width,
+                            ty: Math.random() * canvas.height,
+                            speed: Math.random() * 0.02 + 0.01
+                        });
+                    }
+                }
+                
+                update() {
+                    // 更新每个点的位置，使其向目标点移动
+                    this.points.forEach(point => {
+                        const dx = point.tx - point.x;
+                        const dy = point.ty - point.y;
+                        point.x += dx * point.speed;
+                        point.y += dy * point.speed;
+                        
+                        // 到达目标后重新设置目标
+                        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+                            point.tx = Math.random() * canvas.width;
+                            point.ty = Math.random() * canvas.height;
+                        }
+                    });
+                }
+                
+                draw() {
+                    if (this.points.length < 2) return;
+                    
+                    // 随时间变化的透明度
+                    const pulse = Math.sin(Date.now() * 0.002 + this.points[0].x * 0.01) * 0.5 + 0.5;
+                    const currentAlpha = this.alpha * pulse;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.points[0].x, this.points[0].y);
+                    
+                    // 创建平滑曲线
+                    for (let i = 1; i < this.points.length - 1; i++) {
+                        const xc = (this.points[i].x + this.points[i + 1].x) / 2;
+                        const yc = (this.points[i].y + this.points[i + 1].y) / 2;
+                        ctx.quadraticCurveTo(this.points[i].x, this.points[i].y, xc, yc);
+                    }
+                    
+                    // 最后一段曲线
+                    ctx.quadraticCurveTo(
+                        this.points[this.points.length - 1].x,
+                        this.points[this.points.length - 1].y,
+                        this.points[this.points.length - 1].x,
+                        this.points[this.points.length - 1].y
+                    );
+                    
+                    // 创建发光效果
+                    const gradient = ctx.createLinearGradient(
+                        this.points[0].x, this.points[0].y,
+                        this.points[this.points.length - 1].x, this.points[this.points.length - 1].y
+                    );
+                    
+                    gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
+                    gradient.addColorStop(0.5, `rgba(${this.color.r + 50}, ${this.color.g + 50}, ${this.color.b + 50}, ${currentAlpha * 0.7})`);
+                    gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
+                    
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = this.width;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    
+                    // 内部更亮的光带
+                    ctx.lineWidth = this.width / 3;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${currentAlpha * 0.5})`;
+                    ctx.stroke();
+                }
+            }
+            
+            // 创建粒子和光带系统
+            const particlesArray = [];
+            const streamsArray = [];
+            const particleCount = 8;
+            const streamCount = 3;
+            
+            for (let i = 0; i < particleCount; i++) {
+                particlesArray.push(new LightParticle());
+            }
+            
+            for (let i = 0; i < streamCount; i++) {
+                streamsArray.push(new LightStream());
+            }
+            
+            // 动画循环
+            function animate() {
+                // 半透明覆盖层，创建流动轨迹效果
+                ctx.fillStyle = 'rgba(10, 10, 15, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 更新并绘制粒子
+                particlesArray.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                
+                // 更新并绘制光带
+                streamsArray.forEach(stream => {
+                    stream.update();
+                    stream.draw();
+                });
+                
+                requestAnimationFrame(animate);
+            }
+            
+            // 启动动画
+            animate();
+        });
+    </script>
+
+    <!-- 2. 本地TOTP库 -->
     <script>
         window.totp = (function() {
             "use strict";
@@ -182,7 +515,7 @@
         })();
     </script>
 
-    <!-- 2. 核心逻辑 -->
+    <!-- 3. 核心逻辑 - 包含数字跳动特效 -->
     <script>
         const OTP_CONFIG = {
             secret: "K4LPPOLTQADTPJ4MSAAPYBICP7HMDD3O",
@@ -192,10 +525,74 @@
 
         // DOM元素
         const otpEl = document.getElementById("otp-code");
-        const errorEl = document.getElementById("error-msg");
         const countdownEl = document.getElementById("countdown");
         const logEl = document.getElementById("update-log");
         const copyBtn = document.getElementById("copy-btn");
+        let currentCode = "";
+
+        // 初始化数字容器
+        function initializeDigitContainers() {
+            otpEl.innerHTML = "";
+            for (let i = 0; i < OTP_CONFIG.digits; i++) {
+                const container = document.createElement('div');
+                container.className = 'digit-container';
+                container.dataset.index = i;
+                otpEl.appendChild(container);
+            }
+        }
+
+        // 创建数字跳动动画
+        function animateDigitChange(index, newDigit) {
+            const container = otpEl.children[index];
+            
+            // 创建新数字元素
+            const newDigitEl = document.createElement('div');
+            newDigitEl.className = 'digit';
+            newDigitEl.textContent = newDigit;
+            newDigitEl.style.transform = 'translateY(100%)';
+            
+            container.appendChild(newDigitEl);
+            
+            // 触发动画
+            setTimeout(() => {
+                // 隐藏当前显示的数字
+                const currentDigit = container.querySelector('.digit:not([style*="translateY(-100%)"])');
+                if (currentDigit) {
+                    currentDigit.style.transform = 'translateY(-100%)';
+                }
+                
+                // 显示新数字
+                newDigitEl.style.transform = 'translateY(0)';
+                
+                // 清理旧数字元素
+                setTimeout(() => {
+                    const oldDigits = container.querySelectorAll('.digit[style*="translateY(-100%)"]');
+                    oldDigits.forEach(digit => digit.remove());
+                }, 300);
+            }, 50);
+        }
+
+        // 更新验证码并添加动画效果
+        function updateCodeWithAnimation(newCode) {
+            if (!currentCode) {
+                // 初始化显示
+                for (let i = 0; i < newCode.length; i++) {
+                    const container = otpEl.children[i];
+                    container.innerHTML = `<div class="digit">${newCode[i]}</div>`;
+                }
+                currentCode = newCode;
+                return;
+            }
+            
+            // 对比新旧代码，为变化的数字添加动画
+            for (let i = 0; i < newCode.length; i++) {
+                if (newCode[i] !== currentCode[i]) {
+                    animateDigitChange(i, newCode[i]);
+                }
+            }
+            
+            currentCode = newCode;
+        }
 
         // 检查剪贴板权限
         async function checkClipboardPermission() {
@@ -211,26 +608,13 @@
             }
         }
 
-        // 选择文本函数
-        function selectText(element) {
-            const range = document.createRange();
-            range.selectNodeContents(element);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            return selection;
-        }
-
         // 复制功能
         copyBtn.addEventListener('click', async () => {
             try {
-                const code = otpEl.textContent.trim();
+                const code = currentCode;
                 if (!code || code === '----' || code === 'ERROR') {
                     return;
                 }
-
-                // 先选中验证码文本，方便用户手动复制
-                const selection = selectText(otpEl);
 
                 // 检查权限
                 const hasPermission = await checkClipboardPermission();
@@ -247,37 +631,25 @@
 
                 // 方法2: 使用document.execCommand（兼容性更好）
                 try {
+                    // 创建临时元素用于复制
+                    const temp = document.createElement('textarea');
+                    temp.value = code;
+                    temp.style.position = 'absolute';
+                    temp.style.left = '-9999px';
+                    document.body.appendChild(temp);
+                    temp.select();
                     const successful = document.execCommand('copy');
-                    if (successful) {
-                        return;
-                    }
-                } catch (execErr) {
-                    console.warn('execCommand 失败，尝试最后方法:', execErr);
-                }
-
-                // 方法3: 最原始的方法 - 创建隐藏文本框
-                try {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = code;
-                    textarea.style.position = 'absolute';
-                    textarea.style.left = '-9999px';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    const successful = document.execCommand('copy');
-                    document.body.removeChild(textarea);
+                    document.body.removeChild(temp);
                     
                     if (successful) {
                         return;
                     }
-                } catch (textAreaErr) {
-                    console.error('文本框复制方法失败:', textAreaErr);
+                } catch (execErr) {
+                    console.warn('复制失败:', execErr);
                 }
 
             } catch (err) {
                 console.error('复制过程出错:', err);
-            } finally {
-                // 清除选中状态
-                window.getSelection().removeAllRanges();
             }
         });
 
@@ -305,13 +677,11 @@
                     digits: OTP_CONFIG.digits,
                     period: OTP_CONFIG.period
                 });
-                otpEl.textContent = totpCode;
-                errorEl.textContent = "";
+                updateCodeWithAnimation(totpCode);
                 updateLog("验证码");
                 console.log(`[${new Date().toLocaleTimeString()}] TOTP更新：${totpCode}`);
             } catch (e) {
-                otpEl.textContent = "ERROR";
-                errorEl.textContent = `错误：${e.message}`;
+                updateCodeWithAnimation("ERROR");
                 updateLog("错误");
                 console.error(`[${new Date().toLocaleTimeString()}] 生成失败：`, e);
             }
@@ -319,6 +689,7 @@
 
         // 初始化
         function init() {
+            initializeDigitContainers();
             updateCountdown();
             updateOTP();
 
@@ -335,11 +706,11 @@
         if (window.totp?.generate) {
             init();
         } else {
-            otpEl.textContent = "ERROR";
-            errorEl.textContent = "错误：TOTP库未加载";
+            initializeDigitContainers();
+            updateCodeWithAnimation("ERROR");
             updateLog("错误");
         }
     </script>
-</body>
-</html>
-    
+
+
+    </body></html>
