@@ -16,10 +16,9 @@
             overflow: hidden;
             position: relative;
             color: white;
-            background-color: #0a0a10; /* 深色背景增强模糊效果 */
+            background-color: #0a0a10;
         }
         
-        /* 背景容器 - 四层结构：光带层 → 粒子层 → 模糊层 → 卡片 */
         .background-container {
             position: absolute;
             top: 0;
@@ -30,17 +29,15 @@
             overflow: hidden;
         }
         
-        /* 光带层 - 位于最底层 */
         .light-streams {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 0; /* 最底层 */
+            z-index: 0;
         }
         
-        /* 粒子画布层 - 位于光带上方，模糊层下方 */
         .particle-canvas {
             position: absolute;
             top: 0;
@@ -50,20 +47,18 @@
             z-index: 1;
         }
         
-        /* 模糊层 - 应用高斯模糊效果，位于粒子上方 */
         .blur-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            filter: blur(20px); /* 高斯模糊主效果 */
+            filter: blur(20px);
             -webkit-filter: blur(20px);
-            transform: scale(1.1); /* 稍微放大避免边缘模糊不足 */
-            z-index: 2; /* 在粒子和光带之上 */
+            transform: scale(1.1);
+            z-index: 2;
         }
         
-        /* 透明玻璃质感框架 */
         .otp-card { 
             text-align: center; 
             padding: 36px 24px;
@@ -80,7 +75,14 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
             position: relative;
-            z-index: 3; /* 确保卡片在所有背景元素之上 */
+            z-index: 3;
+        }
+        
+        /* 丝带约束容器 - 与otp-card大小和位置同步 */
+        .stream-bounds {
+            position: absolute;
+            z-index: 0;
+            pointer-events: none;
         }
         
         .otp-header { 
@@ -89,6 +91,8 @@
             justify-content: center; 
             gap: 10px; 
             margin-bottom: 24px; 
+            position: relative;
+            z-index: 1;
         }
         
         .otp-header h2 { 
@@ -104,6 +108,8 @@
             color: rgba(255, 255, 255, 0.8); 
             margin-bottom: 8px;
             letter-spacing: 0.1px;
+            position: relative;
+            z-index: 1;
         }
         
         .code-container {
@@ -113,6 +119,8 @@
             justify-content: center;
             gap: 16px;
             margin: 20px 0;
+            position: relative;
+            z-index: 1;
         }
         
         #otp-code { 
@@ -135,9 +143,9 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
+            z-index: 1;
         }
         
-        /* 数字容器 - 用于实现跳动效果 */
         .digit-container {
             display: inline-block;
             width: 30px;
@@ -147,7 +155,6 @@
             vertical-align: middle;
         }
         
-        /* 单个数字样式 */
         .digit {
             position: absolute;
             width: 100%;
@@ -156,7 +163,6 @@
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
-        /* 验证码区域的流光效果 */
         #otp-code::after {
             content: '';
             position: absolute;
@@ -194,6 +200,12 @@
             box-shadow: 
                 0 1px 3px rgba(0, 0, 0, 0.1),
                 inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
         }
         
         #copy-btn:hover {
@@ -212,8 +224,28 @@
         }
         
         #copy-btn svg {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
+        }
+        
+        #copy-status {
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 18px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        #copy-status.success {
+            color: #4cd964;
+            opacity: 1;
+        }
+        
+        #copy-status.error {
+            color: #ff3b30;
+            opacity: 1;
         }
         
         #countdown { 
@@ -222,6 +254,8 @@
             margin: 12px 0; 
             font-weight: 500;
             letter-spacing: 0.1px;
+            position: relative;
+            z-index: 1;
         }
         
         .update-log { 
@@ -229,9 +263,10 @@
             color: rgba(255, 255, 255, 0.7); 
             margin-top: 12px;
             letter-spacing: 0.05px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* 响应式优化 */
         @media (max-width: 375px) {
             .otp-card {
                 padding: 30px 20px;
@@ -261,18 +296,16 @@
     </style>
 </head>
 <body>
-    <!-- 带高斯模糊、粒子和光带的背景容器 -->
     <div class="background-container">
-        <!-- 光带层 - 最底层 -->
         <canvas class="light-streams" id="lightStreamsCanvas"></canvas>
-        <!-- 粒子层 - 光带上方 -->
         <canvas class="particle-canvas" id="particleCanvas"></canvas>
-        <!-- 模糊层 - 粒子上方 -->
         <div class="blur-overlay" id="blurOverlay"></div>
     </div>
 
-    <!-- 透明玻璃质感框架 -->
     <div class="otp-card">
+        <!-- 丝带约束容器 - 与卡片大小和位置同步 -->
+        <div class="stream-bounds" id="streamBounds"></div>
+        
         <div class="otp-header">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -289,60 +322,79 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
                 </svg>
+                <span>复制验证码</span>
             </button>
+            <div id="copy-status"></div>
         </div>
         <div id="countdown">验证码将在 30 秒后刷新</div>
         <div id="update-log" class="update-log">上次更新：加载中...</div>
     </div>
 
-    <!-- 1. 光带、粒子与高斯模糊效果 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 获取画布和模糊层元素
             const particleCanvas = document.getElementById('particleCanvas');
             const particleCtx = particleCanvas.getContext('2d');
             const lightStreamsCanvas = document.getElementById('lightStreamsCanvas');
             const lightCtx = lightStreamsCanvas.getContext('2d');
             const blurOverlay = document.getElementById('blurOverlay');
+            const streamBounds = document.getElementById('streamBounds');
+            const otpCard = document.querySelector('.otp-card');
             
-            // 设置所有画布尺寸
-            function resizeCanvases() {
-                // 粒子画布
-                particleCanvas.width = window.innerWidth;
-                particleCanvas.height = window.innerHeight;
+            // 获取卡片在页面中的位置和尺寸信息
+            let cardBounds = {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0
+            };
+            
+            // 同步约束容器与卡片的位置和大小
+            function syncStreamBounds() {
+                const rect = otpCard.getBoundingClientRect();
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
                 
-                // 光带画布
-                lightStreamsCanvas.width = window.innerWidth;
-                lightStreamsCanvas.height = window.innerHeight;
+                // 更新卡片边界信息（考虑页面滚动）
+                cardBounds = {
+                    x: rect.left + scrollLeft,
+                    y: rect.top + scrollTop,
+                    width: rect.width,
+                    height: rect.height
+                };
                 
-                // 调整模糊层大小
-                blurOverlay.style.width = `${window.innerWidth}px`;
-                blurOverlay.style.height = `${window.innerHeight}px`;
+                // 同步约束容器
+                streamBounds.style.width = `${cardBounds.width}px`;
+                streamBounds.style.height = `${cardBounds.height}px`;
+                streamBounds.style.top = `${cardBounds.y}px`;
+                streamBounds.style.left = `${cardBounds.x}px`;
             }
             
+            function resizeCanvases() {
+                particleCanvas.width = window.innerWidth;
+                particleCanvas.height = window.innerHeight;
+                lightStreamsCanvas.width = window.innerWidth;
+                lightStreamsCanvas.height = window.innerHeight;
+                blurOverlay.style.width = `${window.innerWidth}px`;
+                blurOverlay.style.height = `${window.innerHeight}px`;
+                
+                // 同步约束容器
+                syncStreamBounds();
+            }
+            
+            // 监听窗口大小变化和滚动事件，确保边界始终准确
             window.addEventListener('resize', resizeCanvases);
+            window.addEventListener('scroll', syncStreamBounds);
             resizeCanvases();
             
-            // 生成随机颜色组的函数
             function generateRandomColorPalette() {
-                // 随机选择一个主色调方向
                 const hueBase = Math.floor(Math.random() * 360);
-                
-                // 生成5-7种协调的颜色
-                const paletteSize = Math.floor(Math.random() * 3) + 5; // 5-7种颜色
+                const paletteSize = Math.floor(Math.random() * 3) + 5;
                 const palette = [];
                 
                 for (let i = 0; i < paletteSize; i++) {
-                    // 计算色相，基于主色调并添加变化
                     const hue = (hueBase + (i * (30 + Math.random() * 60))) % 360;
-                    
-                    // 饱和度：70-90%
-                    const saturation = 70 + Math.random() * 20;
-                    
-                    // 亮度：40-70%（确保颜色鲜明但不刺眼）
-                    const lightness = 40 + Math.random() * 30;
-                    
-                    // 转换HSL到RGB
+                    const saturation = 60 + Math.random() * 20; // 降低饱和度使颜色更柔和但保持亮度
+                    const lightness = 60 + Math.random() * 30; // 提高亮度范围（60-90）
                     const rgb = hslToRgb(hue, saturation, lightness);
                     palette.push(rgb);
                 }
@@ -350,7 +402,6 @@
                 return palette;
             }
             
-            // HSL到RGB转换函数
             function hslToRgb(h, s, l) {
                 h /= 360;
                 s /= 100;
@@ -359,7 +410,7 @@
                 let r, g, b;
                 
                 if (s === 0) {
-                    r = g = b = l; // 灰色
+                    r = g = b = l;
                 } else {
                     const hue2rgb = (p, q, t) => {
                         if (t < 0) t += 1;
@@ -385,43 +436,47 @@
                 };
             }
             
-            // 生成随机颜色组（每次打开页面都会不同）
             const colorPalettes = generateRandomColorPalette();
             
-            // 光带类 - 位于最底层
             class LightStream {
                 constructor() {
                     this.points = [];
-                    this.count = Math.floor(Math.random() * 8) + 4; // 4-12个点
+                    this.count = Math.floor(Math.random() * 5) + 3;
                     this.color = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
-                    this.width = Math.random() * 40 + 10; // 10-50px宽
-                    this.speed = Math.random() * 0.01 + 0.005;
-                    this.alpha = Math.random() * 0.2 + 0.1;
+                    this.width = Math.random() * 15 + 8; // 稍微增加宽度使丝带更明显
+                    this.speed = Math.random() * 0.008 + 0.003;
+                    this.alpha = Math.random() * 0.2 + 0.2; // 提高透明度（0.2-0.4）使丝带更亮
                     
-                    // 初始化光带点
+                    this.initializePoints();
+                }
+                
+                // 初始化点，限制在卡片范围内
+                initializePoints() {
+                    this.points = [];
+                    
                     for (let i = 0; i < this.count; i++) {
+                        // 仅在卡片范围内生成点
                         this.points.push({
-                            x: Math.random() * lightStreamsCanvas.width,
-                            y: Math.random() * lightStreamsCanvas.height,
-                            tx: Math.random() * lightStreamsCanvas.width,
-                            ty: Math.random() * lightStreamsCanvas.height,
+                            x: cardBounds.x + Math.random() * cardBounds.width,
+                            y: cardBounds.y + Math.random() * cardBounds.height,
+                            tx: cardBounds.x + Math.random() * cardBounds.width,
+                            ty: cardBounds.y + Math.random() * cardBounds.height,
                             speed: Math.random() * 0.01 + 0.005
                         });
                     }
                 }
                 
                 update() {
-                    // 更新每个点的位置，使其向目标点移动
                     this.points.forEach(point => {
                         const dx = point.tx - point.x;
                         const dy = point.ty - point.y;
                         point.x += dx * point.speed;
                         point.y += dy * point.speed;
                         
-                        // 到达目标后重新设置目标
+                        // 确保目标点始终在卡片范围内
                         if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
-                            point.tx = Math.random() * lightStreamsCanvas.width;
-                            point.ty = Math.random() * lightStreamsCanvas.height;
+                            point.tx = cardBounds.x + Math.random() * cardBounds.width;
+                            point.ty = cardBounds.y + Math.random() * cardBounds.height;
                         }
                     });
                 }
@@ -429,21 +484,18 @@
                 draw() {
                     if (this.points.length < 2) return;
                     
-                    // 随时间变化的透明度
                     const pulse = Math.sin(Date.now() * 0.002 + this.points[0].x * 0.01) * 0.5 + 0.5;
                     const currentAlpha = this.alpha * pulse;
                     
                     lightCtx.beginPath();
                     lightCtx.moveTo(this.points[0].x, this.points[0].y);
                     
-                    // 创建平滑曲线
                     for (let i = 1; i < this.points.length - 1; i++) {
                         const xc = (this.points[i].x + this.points[i + 1].x) / 2;
                         const yc = (this.points[i].y + this.points[i + 1].y) / 2;
                         lightCtx.quadraticCurveTo(this.points[i].x, this.points[i].y, xc, yc);
                     }
                     
-                    // 最后一段曲线
                     lightCtx.quadraticCurveTo(
                         this.points[this.points.length - 1].x,
                         this.points[this.points.length - 1].y,
@@ -451,14 +503,14 @@
                         this.points[this.points.length - 1].y
                     );
                     
-                    // 创建发光效果
                     const gradient = lightCtx.createLinearGradient(
                         this.points[0].x, this.points[0].y,
                         this.points[this.points.length - 1].x, this.points[this.points.length - 1].y
                     );
                     
+                    // 提高颜色亮度，增加中间高光的亮度
                     gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
-                    gradient.addColorStop(0.5, `rgba(${Math.min(this.color.r + 50, 255)}, ${Math.min(this.color.g + 50, 255)}, ${Math.min(this.color.b + 50, 255)}, ${currentAlpha * 0.7})`);
+                    gradient.addColorStop(0.5, `rgba(${Math.min(this.color.r + 80, 255)}, ${Math.min(this.color.g + 80, 255)}, ${Math.min(this.color.b + 80, 255)}, ${currentAlpha * 0.9})`);
                     gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
                     
                     lightCtx.strokeStyle = gradient;
@@ -466,35 +518,31 @@
                     lightCtx.lineCap = 'round';
                     lightCtx.stroke();
                     
-                    // 内部更亮的光带
+                    // 增强白色描边的亮度
                     lightCtx.lineWidth = this.width / 3;
-                    lightCtx.strokeStyle = `rgba(255, 255, 255, ${currentAlpha * 0.5})`;
+                    lightCtx.strokeStyle = `rgba(255, 255, 255, ${currentAlpha * 0.8})`;
                     lightCtx.stroke();
                 }
             }
             
-            // 粒子类 - 位于光带上方，模糊层下方
             class Particle {
                 constructor() {
-                    // 超大型粒子（400-600像素）
                     this.size = Math.random() * 200 + 400;
                     this.x = Math.random() * particleCanvas.width;
                     this.y = Math.random() * particleCanvas.height;
-                    this.speedX = Math.random() * 0.5 - 0.25; // 较慢的移动速度
+                    this.speedX = Math.random() * 0.5 - 0.25;
                     this.speedY = Math.random() * 0.5 - 0.25;
                     this.color = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
-                    this.alpha = Math.random() * 0.2 + 0.1; // 半透明效果
+                    this.alpha = Math.random() * 0.2 + 0.1;
                     this.angle = Math.random() * Math.PI * 2;
                     this.angleSpeed = Math.random() * 0.01 - 0.005;
                 }
                 
                 update() {
-                    // 移动粒子
                     this.x += this.speedX;
                     this.y += this.speedY;
                     this.angle += this.angleSpeed;
                     
-                    // 边界检测 - 循环效果
                     if (this.x < -this.size) this.x = particleCanvas.width + this.size;
                     if (this.x > particleCanvas.width + this.size) this.x = -this.size;
                     if (this.y < -this.size) this.y = particleCanvas.height + this.size;
@@ -504,13 +552,11 @@
                 draw() {
                     particleCtx.beginPath();
                     
-                    // 创建渐变光效
                     const gradient = particleCtx.createRadialGradient(
                         this.x, this.y, 0,
                         this.x, this.y, this.size
                     );
                     
-                    // 随时间变化的呼吸效果
                     const pulse = Math.sin(Date.now() * 0.0008 + this.x * 0.005) * 0.5 + 0.5;
                     const currentAlpha = this.alpha * pulse;
                     
@@ -524,28 +570,23 @@
                 }
             }
             
-            // 创建光带系统
+            // 使用原有的丝带数组，不添加新的
             const streamsArray = [];
-            const streamCount = 3; // 3条光带
+            const streamCount = 3; // 保持原有数量
             
             for (let i = 0; i < streamCount; i++) {
                 streamsArray.push(new LightStream());
             }
             
-            // 创建粒子系统
             const particlesArray = [];
-            const particleCount = 3; // 3个超大型粒子
-            
+            const particleCount = 3;
             for (let i = 0; i < particleCount; i++) {
                 particlesArray.push(new Particle());
             }
             
-            // 更新模糊层背景
             function updateBlurBackground() {
-                // 混合光带和粒子的颜色影响
                 let backgroundStyles = [];
                 
-                // 添加粒子的径向渐变
                 particlesArray.forEach(particle => {
                     backgroundStyles.push(
                         `radial-gradient(circle at ${particle.x}px ${particle.y}px, 
@@ -554,7 +595,6 @@
                     );
                 });
                 
-                // 添加光带的影响
                 streamsArray.forEach(stream => {
                     backgroundStyles.push(
                         `linear-gradient(to right, 
@@ -564,49 +604,39 @@
                     );
                 });
                 
-                // 应用混合背景
                 blurOverlay.style.background = backgroundStyles.join(', ');
             }
             
-            // 动画循环
             function animate() {
-                // 清空光带画布
                 lightCtx.clearRect(0, 0, lightStreamsCanvas.width, lightStreamsCanvas.height);
-                
-                // 清空粒子画布
                 particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
                 
-                // 绘制半透明覆盖层，创建流动轨迹效果
                 lightCtx.fillStyle = 'rgba(10, 10, 15, 0.05)';
                 lightCtx.fillRect(0, 0, lightStreamsCanvas.width, lightStreamsCanvas.height);
                 
                 particleCtx.fillStyle = 'rgba(10, 10, 15, 0.08)';
                 particleCtx.fillRect(0, 0, particleCanvas.width, particleCanvas.height);
                 
-                // 更新并绘制光带
+                // 更新和绘制原有丝带（已修改属性限制在卡片内且更亮）
                 streamsArray.forEach(stream => {
                     stream.update();
                     stream.draw();
                 });
                 
-                // 更新并绘制粒子
                 particlesArray.forEach(particle => {
                     particle.update();
                     particle.draw();
                 });
                 
-                // 更新模糊层背景
                 updateBlurBackground();
                 
                 requestAnimationFrame(animate);
             }
             
-            // 启动动画
             animate();
         });
     </script>
 
-    <!-- 2. 本地TOTP库 -->
     <script>
         window.totp = (function() {
             "use strict";
@@ -621,38 +651,78 @@
 
             function base32Decode(secret) {
                 const bits = [];
-                for (const c of secret) bits.push(...BASE32_CHARS.indexOf(c).toString(2).padStart(5, "0").split("").map(Number));
+                for (const c of secret) {
+                    const idx = BASE32_CHARS.indexOf(c);
+                    if (idx === -1) continue;
+                    bits.push(...idx.toString(2).padStart(5, "0").split("").map(Number));
+                }
                 const bytes = [];
-                for (let i = 0; i < bits.length; i += 8) if (bits.slice(i, i + 8).length === 8) bytes.push(parseInt(bits.slice(i, i + 8).join(""), 2));
+                for (let i = 0; i < bits.length; i += 8) {
+                    if (bits.slice(i, i + 8).length === 8) {
+                        bytes.push(parseInt(bits.slice(i, i + 8).join(""), 2));
+                    }
+                }
                 return new Uint8Array(bytes);
             }
 
             async function generate(secret, options = {}) {
-                const config = { algorithm: "SHA-1", digits: 6, period: 30, timestamp: Date.now() };
+                // 处理Safari兼容性 - 先检查Web Crypto支持
+                if (!window.crypto?.subtle) {
+                    // Safari在非HTTPS环境下的降级提示
+                    if (window.location.protocol !== 'https:' && !window.location.hostname.includes('localhost')) {
+                        throw new Error("请使用HTTPS或localhost访问以启用功能");
+                    }
+                    throw new Error("浏览器不支持加密功能，请更换现代浏览器");
+                }
+
+                const config = { 
+                    algorithm: "SHA-1", 
+                    digits: 6, 
+                    period: 30, 
+                    timestamp: Date.now() 
+                };
                 Object.assign(config, options);
 
-                if (!window.crypto?.subtle) throw new Error("请用Chrome/Firefox/Edge（需Web Crypto API）");
                 if (![6,7,8].includes(config.digits)) throw new Error("位数必须为6/7/8");
 
-                const secretBytes = base32Decode(validateSecret(secret));
-                const timeStep = Math.floor(config.timestamp / 1000 / config.period);
-                const timeBuffer = new ArrayBuffer(8);
-                new DataView(timeBuffer).setBigUint64(0, BigInt(timeStep), false);
+                try {
+                    const secretBytes = base32Decode(validateSecret(secret));
+                    // 确保时间戳为整数
+                    const timeStep = Math.floor(Math.floor(config.timestamp) / 1000 / config.period);
+                    const timeBuffer = new ArrayBuffer(8);
+                    
+                    // 处理Safari对BigInt的兼容性
+                    const dataView = new DataView(timeBuffer);
+                    const high = Number((BigInt(timeStep) >> 32n) & 0xFFFFFFFFn);
+                    const low = Number(BigInt(timeStep) & 0xFFFFFFFFn);
+                    dataView.setUint32(0, high, false);
+                    dataView.setUint32(4, low, false);
 
-                const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: config.algorithm }, false, ["sign"]);
-                const hmac = await crypto.subtle.sign("HMAC", key, timeBuffer);
-                const hmacView = new DataView(hmac);
-                const offset = hmacView.getUint8(hmacView.byteLength - 1) & 0x0F;
-                let code = hmacView.getUint32(offset, false) & 0x7FFFFFFF;
+                    // 调整importKey参数以兼容Safari
+                    const key = await crypto.subtle.importKey(
+                        "raw",
+                        secretBytes,
+                        { name: "HMAC", hash: { name: config.algorithm } },
+                        false,
+                        ["sign"]
+                    );
+                    
+                    const hmac = await crypto.subtle.sign("HMAC", key, timeBuffer);
+                    const hmacView = new DataView(hmac);
+                    const offset = hmacView.getUint8(hmacView.byteLength - 1) & 0x0F;
+                    let code = hmacView.getUint32(offset, false) & 0x7FFFFFFF;
 
-                return (code % Math.pow(10, config.digits)).toString().padStart(config.digits, "0");
+                    return (code % Math.pow(10, config.digits)).toString().padStart(config.digits, "0");
+                } catch (e) {
+                    console.error("生成TOTP失败:", e);
+                    throw new Error("生成验证码失败，请重试");
+                }
             }
 
             return { generate };
         })();
     </script>
 
-    <!-- 3. 核心逻辑 - 包含数字跳动特效 -->
     <script>
         const OTP_CONFIG = {
             secret: "K4LPPOLTQADTPJ4MSAAPYBICP7HMDD3O",
@@ -660,14 +730,14 @@
             digits: 6
         };
 
-        // DOM元素
         const otpEl = document.getElementById("otp-code");
         const countdownEl = document.getElementById("countdown");
         const logEl = document.getElementById("update-log");
         const copyBtn = document.getElementById("copy-btn");
+        const copyStatus = document.getElementById("copy-status");
         let currentCode = "";
+        let statusTimeout = null;
 
-        // 初始化数字容器
         function initializeDigitContainers() {
             otpEl.innerHTML = "";
             for (let i = 0; i < OTP_CONFIG.digits; i++) {
@@ -678,11 +748,10 @@
             }
         }
 
-        // 创建数字跳动动画
         function animateDigitChange(index, newDigit) {
             const container = otpEl.children[index];
+            if (!container) return;
             
-            // 创建新数字元素
             const newDigitEl = document.createElement('div');
             newDigitEl.className = 'digit';
             newDigitEl.textContent = newDigit;
@@ -690,18 +759,14 @@
             
             container.appendChild(newDigitEl);
             
-            // 触发动画
             setTimeout(() => {
-                // 隐藏当前显示的数字
                 const currentDigit = container.querySelector('.digit:not([style*="translateY(-100%)"])');
                 if (currentDigit) {
                     currentDigit.style.transform = 'translateY(-100%)';
                 }
                 
-                // 显示新数字
                 newDigitEl.style.transform = 'translateY(0)';
                 
-                // 清理旧数字元素
                 setTimeout(() => {
                     const oldDigits = container.querySelectorAll('.digit[style*="translateY(-100%)"]');
                     oldDigits.forEach(digit => digit.remove());
@@ -709,19 +774,18 @@
             }, 50);
         }
 
-        // 更新验证码并添加动画效果
         function updateCodeWithAnimation(newCode) {
             if (!currentCode) {
-                // 初始化显示
                 for (let i = 0; i < newCode.length; i++) {
                     const container = otpEl.children[i];
-                    container.innerHTML = `<div class="digit">${newCode[i]}</div>`;
+                    if (container) {
+                        container.innerHTML = `<div class="digit">${newCode[i]}</div>`;
+                    }
                 }
                 currentCode = newCode;
                 return;
             }
             
-            // 对比新旧代码，为变化的数字添加动画
             for (let i = 0; i < newCode.length; i++) {
                 if (newCode[i] !== currentCode[i]) {
                     animateDigitChange(i, newCode[i]);
@@ -731,73 +795,121 @@
             currentCode = newCode;
         }
 
-        // 检查剪贴板权限
-        async function checkClipboardPermission() {
-            try {
-                if (!navigator.permissions || !navigator.clipboard) {
-                    return false;
-                }
-                const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
-                return permissionStatus.state === 'granted' || permissionStatus.state === 'prompt';
-            } catch (err) {
-                console.error('检查剪贴板权限失败:', err);
-                return false;
+        // 显示复制状态信息
+        function showCopyStatus(message, isSuccess) {
+            // 清除之前的超时
+            if (statusTimeout) {
+                clearTimeout(statusTimeout);
             }
+            
+            // 更新状态显示
+            copyStatus.textContent = message;
+            copyStatus.className = isSuccess ? 'success' : 'error';
+            
+            // 设置自动隐藏
+            statusTimeout = setTimeout(() => {
+                copyStatus.className = '';
+                copyStatus.textContent = '';
+            }, 2000);
         }
 
-        // 复制功能
+        // 多轮方法测试复制功能
+        async function copyToClipboard(text) {
+            // 尝试多种复制方法以确保兼容性
+            const methods = [
+                // 方法1: 使用execCommand的标准复制方式
+                () => new Promise(resolve => {
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        resolve(successful);
+                    } catch (error) {
+                        resolve(false);
+                    }
+                }),
+                
+                // 方法2: 使用更严格的选择范围处理
+                () => new Promise(resolve => {
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.position = 'absolute';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(textarea);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        selection.removeAllRanges();
+                        resolve(successful);
+                    } catch (error) {
+                        resolve(false);
+                    }
+                }),
+                
+                // 方法3: 使用Clipboard API
+                () => new Promise(async resolve => {
+                    try {
+                        if (!navigator.clipboard) return resolve(false);
+                        await navigator.clipboard.writeText(text);
+                        resolve(true);
+                    } catch (error) {
+                        resolve(false);
+                    }
+                })
+            ];
+            
+            // 依次尝试各种方法
+            for (const method of methods) {
+                if (await method()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         copyBtn.addEventListener('click', async () => {
             try {
                 const code = currentCode;
                 if (!code || code === '----' || code === 'ERROR') {
+                    showCopyStatus('没有可复制的验证码', false);
                     return;
                 }
 
-                // 检查权限
-                const hasPermission = await checkClipboardPermission();
+                const success = await copyToClipboard(code);
                 
-                // 方法1: 使用Clipboard API（现代浏览器）
-                if (hasPermission && navigator.clipboard) {
-                    try {
-                        await navigator.clipboard.writeText(code);
-                        return;
-                    } catch (clipboardErr) {
-                        console.warn('Clipboard API 失败，尝试备选方法:', clipboardErr);
-                    }
+                if (success) {
+                    showCopyStatus('验证码已复制到剪贴板', true);
+                } else {
+                    showCopyStatus('复制失败，请手动复制', false);
+                    // 选中验证码方便手动复制
+                    const range = document.createRange();
+                    range.selectNode(otpEl);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                 }
-
-                // 方法2: 使用document.execCommand（兼容性更好）
-                try {
-                    // 创建临时元素用于复制
-                    const temp = document.createElement('textarea');
-                    temp.value = code;
-                    temp.style.position = 'absolute';
-                    temp.style.left = '-9999px';
-                    document.body.appendChild(temp);
-                    temp.select();
-                    const successful = document.execCommand('copy');
-                    document.body.removeChild(temp);
-                    
-                    if (successful) {
-                        return;
-                    }
-                } catch (execErr) {
-                    console.warn('复制失败:', execErr);
-                }
-
             } catch (err) {
                 console.error('复制过程出错:', err);
+                showCopyStatus('复制失败，请重试', false);
             }
         });
 
-        // 记录上次更新时间
         function updateLog(type = "验证码") {
             const now = new Date();
             const timeStr = now.toLocaleTimeString();
             logEl.textContent = `上次${type}更新：${timeStr}`;
         }
 
-        // 倒计时更新
         function updateCountdown() {
             const utcSeconds = Math.floor(Date.now() / 1000);
             const remaining = OTP_CONFIG.period - (utcSeconds % OTP_CONFIG.period);
@@ -807,7 +919,6 @@
             }
         }
 
-        // 验证码更新
         async function updateOTP() {
             try {
                 const totpCode = await window.totp.generate(OTP_CONFIG.secret, {
@@ -824,7 +935,6 @@
             }
         }
 
-        // 初始化
         function init() {
             initializeDigitContainers();
             updateCountdown();
@@ -839,7 +949,6 @@
             }, 1000);
         }
 
-        // 启动
         if (window.totp?.generate) {
             init();
         } else {
