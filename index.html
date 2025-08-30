@@ -163,6 +163,22 @@
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
+        /* 文字发光动画 */
+        .digit.glow {
+            animation: textGlow 1s ease-out;
+        }
+        
+        @keyframes textGlow {
+            0% {
+                text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
+                             0 0 20px rgba(255, 255, 255, 0.6),
+                             0 0 30px rgba(255, 255, 255, 0.4);
+            }
+            100% {
+                text-shadow: none;
+            }
+        }
+        
         #otp-code::after {
             content: '';
             position: absolute;
@@ -326,7 +342,7 @@
             </button>
             <div id="copy-status"></div>
         </div>
-        <div id="countdown">验证码将在 30 秒后刷新</div>
+        <div id="countdown">验证码将在 28 秒后刷新</div>
         <div id="update-log" class="update-log">上次更新：加载中...</div>
     </div>
 
@@ -386,6 +402,11 @@
             window.addEventListener('scroll', syncStreamBounds);
             resizeCanvases();
             
+            // 边界检查工具函数 - 高效确保点在卡片内
+            function clampToCardBounds(value, min, max) {
+                return Math.max(min, Math.min(value, max));
+            }
+            
             function generateRandomColorPalette() {
                 const hueBase = Math.floor(Math.random() * 360);
                 const paletteSize = Math.floor(Math.random() * 3) + 5;
@@ -393,8 +414,8 @@
                 
                 for (let i = 0; i < paletteSize; i++) {
                     const hue = (hueBase + (i * (30 + Math.random() * 60))) % 360;
-                    const saturation = 60 + Math.random() * 20; // 降低饱和度使颜色更柔和但保持亮度
-                    const lightness = 60 + Math.random() * 30; // 提高亮度范围（60-90）
+                    const saturation = 60 + Math.random() * 20;
+                    const lightness = 60 + Math.random() * 30;
                     const rgb = hslToRgb(hue, saturation, lightness);
                     palette.push(rgb);
                 }
@@ -443,40 +464,95 @@
                     this.points = [];
                     this.count = Math.floor(Math.random() * 5) + 3;
                     this.color = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
-                    this.width = Math.random() * 15 + 8; // 稍微增加宽度使丝带更明显
+                    // 丝带加粗：将宽度范围从 8-23 调整为 15-40
+                    this.width = Math.random() * 25 + 15;
                     this.speed = Math.random() * 0.008 + 0.003;
-                    this.alpha = Math.random() * 0.2 + 0.2; // 提高透明度（0.2-0.4）使丝带更亮
+                    this.alpha = Math.random() * 0.2 + 0.2;
                     
                     this.initializePoints();
                 }
                 
-                // 初始化点，限制在卡片范围内
+                // 初始化点，严格限制在卡片范围内
                 initializePoints() {
                     this.points = [];
+                    // 计算内边距，确保丝带不会触及卡片边缘
+                    const padding = this.width * 2;
+                    const innerWidth = cardBounds.width - padding * 2;
+                    const innerHeight = cardBounds.height - padding * 2;
                     
                     for (let i = 0; i < this.count; i++) {
-                        // 仅在卡片范围内生成点
                         this.points.push({
-                            x: cardBounds.x + Math.random() * cardBounds.width,
-                            y: cardBounds.y + Math.random() * cardBounds.height,
-                            tx: cardBounds.x + Math.random() * cardBounds.width,
-                            ty: cardBounds.y + Math.random() * cardBounds.height,
+                            x: clampToCardBounds(
+                                cardBounds.x + padding + Math.random() * innerWidth,
+                                cardBounds.x + padding,
+                                cardBounds.x + cardBounds.width - padding
+                            ),
+                            y: clampToCardBounds(
+                                cardBounds.y + padding + Math.random() * innerHeight,
+                                cardBounds.y + padding,
+                                cardBounds.y + cardBounds.height - padding
+                            ),
+                            tx: 0,
+                            ty: 0,
                             speed: Math.random() * 0.01 + 0.005
                         });
                     }
+                    
+                    // 初始化目标点
+                    this.updateTargetPoints();
+                }
+                
+                // 更新目标点，确保在卡片范围内
+                updateTargetPoints() {
+                    const padding = this.width * 2;
+                    this.points.forEach(point => {
+                        point.tx = clampToCardBounds(
+                            cardBounds.x + padding + Math.random() * (cardBounds.width - padding * 2),
+                            cardBounds.x + padding,
+                            cardBounds.x + cardBounds.width - padding
+                        );
+                        point.ty = clampToCardBounds(
+                            cardBounds.y + padding + Math.random() * (cardBounds.height - padding * 2),
+                            cardBounds.y + padding,
+                            cardBounds.y + cardBounds.height - padding
+                        );
+                    });
                 }
                 
                 update() {
+                    const padding = this.width * 2;
+                    
                     this.points.forEach(point => {
+                        // 移动点
                         const dx = point.tx - point.x;
                         const dy = point.ty - point.y;
                         point.x += dx * point.speed;
                         point.y += dy * point.speed;
                         
-                        // 确保目标点始终在卡片范围内
+                        // 严格限制点在卡片范围内（包括边界检查）
+                        point.x = clampToCardBounds(
+                            point.x,
+                            cardBounds.x + padding,
+                            cardBounds.x + cardBounds.width - padding
+                        );
+                        point.y = clampToCardBounds(
+                            point.y,
+                            cardBounds.y + padding,
+                            cardBounds.y + cardBounds.height - padding
+                        );
+                        
+                        // 当点到达目标附近时，更新目标点
                         if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
-                            point.tx = cardBounds.x + Math.random() * cardBounds.width;
-                            point.ty = cardBounds.y + Math.random() * cardBounds.height;
+                            point.tx = clampToCardBounds(
+                                cardBounds.x + padding + Math.random() * (cardBounds.width - padding * 2),
+                                cardBounds.x + padding,
+                                cardBounds.x + cardBounds.width - padding
+                            );
+                            point.ty = clampToCardBounds(
+                                cardBounds.y + padding + Math.random() * (cardBounds.height - padding * 2),
+                                cardBounds.y + padding,
+                                cardBounds.y + cardBounds.height - padding
+                            );
                         }
                     });
                 }
@@ -508,7 +584,6 @@
                         this.points[this.points.length - 1].x, this.points[this.points.length - 1].y
                     );
                     
-                    // 提高颜色亮度，增加中间高光的亮度
                     gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
                     gradient.addColorStop(0.5, `rgba(${Math.min(this.color.r + 80, 255)}, ${Math.min(this.color.g + 80, 255)}, ${Math.min(this.color.b + 80, 255)}, ${currentAlpha * 0.9})`);
                     gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${currentAlpha})`);
@@ -518,7 +593,6 @@
                     lightCtx.lineCap = 'round';
                     lightCtx.stroke();
                     
-                    // 增强白色描边的亮度
                     lightCtx.lineWidth = this.width / 3;
                     lightCtx.strokeStyle = `rgba(255, 255, 255, ${currentAlpha * 0.8})`;
                     lightCtx.stroke();
@@ -570,9 +644,9 @@
                 }
             }
             
-            // 使用原有的丝带数组，不添加新的
+            // 保持原有数量的丝带以控制资源占用
             const streamsArray = [];
-            const streamCount = 3; // 保持原有数量
+            const streamCount = 3;
             
             for (let i = 0; i < streamCount; i++) {
                 streamsArray.push(new LightStream());
@@ -608,6 +682,7 @@
             }
             
             function animate() {
+                // 高效清除画布
                 lightCtx.clearRect(0, 0, lightStreamsCanvas.width, lightStreamsCanvas.height);
                 particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
                 
@@ -617,7 +692,7 @@
                 particleCtx.fillStyle = 'rgba(10, 10, 15, 0.08)';
                 particleCtx.fillRect(0, 0, particleCanvas.width, particleCanvas.height);
                 
-                // 更新和绘制原有丝带（已修改属性限制在卡片内且更亮）
+                // 更新和绘制丝带
                 streamsArray.forEach(stream => {
                     stream.update();
                     stream.draw();
@@ -753,7 +828,7 @@
             if (!container) return;
             
             const newDigitEl = document.createElement('div');
-            newDigitEl.className = 'digit';
+            newDigitEl.className = 'digit glow'; // 添加发光类
             newDigitEl.textContent = newDigit;
             newDigitEl.style.transform = 'translateY(100%)';
             
@@ -767,10 +842,12 @@
                 
                 newDigitEl.style.transform = 'translateY(0)';
                 
+                // 动画结束后移除发光类
                 setTimeout(() => {
+                    newDigitEl.classList.remove('glow');
                     const oldDigits = container.querySelectorAll('.digit[style*="translateY(-100%)"]');
                     oldDigits.forEach(digit => digit.remove());
-                }, 300);
+                }, 1000); // 与发光动画时长一致
             }, 50);
         }
 
@@ -779,7 +856,10 @@
                 for (let i = 0; i < newCode.length; i++) {
                     const container = otpEl.children[i];
                     if (container) {
-                        container.innerHTML = `<div class="digit">${newCode[i]}</div>`;
+                        const digitEl = document.createElement('div');
+                        digitEl.className = 'digit';
+                        digitEl.textContent = newCode[i];
+                        container.appendChild(digitEl);
                     }
                 }
                 currentCode = newCode;
@@ -957,5 +1037,5 @@
             updateLog("错误");
         }
     </script>
-</body></html>
-    
+
+    </body></html>
